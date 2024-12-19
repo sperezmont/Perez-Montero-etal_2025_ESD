@@ -1,0 +1,4 @@
+scripts/figures/diagnosticL.jl
+figures/diagnosticL.pdf
+data/*
+data/runs/*
