@@ -1,4 +1,6 @@
 scripts/figures/diagnosticL.jl
 figures/diagnosticL.pdf
-data/*
+data/insolation/*
+data/paleo_records/*
 data/runs/*
+data/yelmo_runs/*
