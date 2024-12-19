@@ -24,39 +24,17 @@ function calc_radius(data::NCDataset)
     return Radius   # km
 end
 
-function calc_ice_profile(Z, R, bR; n=10)
-    # Assume profile dependent on Z, b(R) and R:   z(r) = A⋅r³ + Z
-    # since z(R) = b(R)
-    A = (bR .- Z) ./ (R^3) 
-
-    if Z <= bR
-        A = -1 .* (bR .- Z) ./ R^3
-    elseif R < 0.1
-        A = 0    
+function calc_ice_profile(Z, R; n=100, exponent=5, c=0.9)
+    r = range(0, R, length=n) .* 1e3    # SOLUCION tres secciones con tres c o con tres potencias???
+    
+    if typeof(c) != Real
+        c = R .* 1e3 ./ (Z .^ exponent)
     end
 
-    # r-axis
-    r = range(0, R, length=n)
-
-    return r, A .* r .^3 .+ Z    
+    return r ./ 1e3, min.(Z, (r ./ c) .^ (1 ./ exponent))   
 end
 
-function calc_hice_profile(H, R;n=10)
-    # follows Vialov profile
-    # h(r) = H[1 - (r/R)^a]^b
-    # a = (m+1)/m
-    # b = m/(2m + 2)
-    m = 1
-    a = (m+1) / m
-    b = m / (2*m + 2)
-
-    # r-axis
-    r = range(0, R, length=n)
-
-    return r, H .* (1 .- (r ./ R) .^ a) .^ b 
-end
-
-function calc_bed_profile(B, R, yR; n=10)
+function calc_bed_profile(B, R, yR; n=100)
     # Assume a profile dependent on B and R:   b(r) = A⋅r³ + B
     # since b(R) = yR (local approximation), yR >= B always!!
     A = (yR .- B)  ./ (R^3)
@@ -79,14 +57,9 @@ function update_profiles(H, Z, B, R, SED, Brelax, xaxislimit, mode)
     new_yb = vcat(Brelax .* ones(length(extra_domain)), reverse(yb), yb, Brelax .* ones(length(extra_domain))) 
 
     # 2. Ice surface profile
-    if mode == "vialov"
-        xz, h = calc_hice_profile(H, R)
-        yz = h .+ SED .+ yb
-    else
-        xz, yz = calc_ice_profile(Z, R, yb[end])   
-    end
+    xz, yz = calc_ice_profile(Z, R)  
     new_xz = vcat(-1 .* reverse(extra_domain), -1 .* reverse(xz), xz, extra_domain)
-    new_yz = vcat(Brelax .* ones(length(extra_domain)), reverse(yz), yz, Brelax .* ones(length(extra_domain))) 
+    new_yz = vcat(Brelax .* ones(length(extra_domain)), yz, reverse(yz), Brelax .* ones(length(extra_domain))) 
 
     # 3. Sediments profile
     xs = new_xb
@@ -103,16 +76,17 @@ function create_animation(experiment::String, frames::Any;where2save::String="./
 
     df = NCDataset(experiment)
     
-    R = calc_radius(df)
+    R = df["L"][:] ./ 1e3 #calc_radius(df)
     z = df["z"][:]
     z[R .<= 0] .= 0.0 
 
     limst = (df["time"][frames[1]] ./ 1e3, df["time"][frames[end]] ./ 1e3)
     
-    ice_color = collect(cgrad([:grey10, :dimgrey, :lightslategrey, :slategray3, :lightsteelblue1], 10, categorical=true))
-    ice_color_ranges = range(0.2, 0.9, length=10)
+    ice_cmap = cgrad([:slategray4, :lightslategrey, :slategray3, :lightsteelblue1, :azure2], 5, categorical=true)
+    ice_color = collect(ice_cmap)
+    ice_color_ranges = range(0.4, stop=0.9, length=5)
 
-    ice_vol_proxy1 = JLD2.load_object("$(path2proxy)/bintanja-vandewal_2008_3000.jld2")
+    ice_vol_proxy1 = JLD2.load_object("$(path2proxy)/bintanja-vandewal_2008_800.jld2")
     ice_vol_proxy2 = JLD2.load_object("$(path2proxy)/spratt-lisiecki_2016.jld2")
 
     # . Define figure
@@ -147,10 +121,10 @@ function create_animation(experiment::String, frames::Any;where2save::String="./
     rowgap!(fig.layout, 1, 0.0)
 
     if plot_albedo
-        Colorbar(fig[3, 1], width=Relative(1/6), height=Relative(1/15), colormap=ice_color,
+        Colorbar(fig[3, 1], width=Relative(1/6), height=Relative(1/15), colormap=ice_cmap,
                         label=L"Albedo $\,$",
-                        limits=(0, 1.0),
-                        ticks=([0, 0.5, 1.0], convert_strings_to_latex([0.2, 0.5, 0.9])),
+                        limits=(0.4, 0.9), lowclip=:navajowhite4, highclip=:white,
+                        ticks=([0.4, 0.9], convert_strings_to_latex([0.4, 0.9])),
                         ticklabelsize=28, halign=0.95, valign=0.85,
                         vertical=false
                     )
@@ -213,6 +187,7 @@ function create_animation(experiment::String, frames::Any;where2save::String="./
         if df["H"][frame] > 0
             if plot_albedo
                 color_idx = findmin(abs.(ice_color_ranges .- df["albedo"][frame]))[2]   # read color
+
                 color = ice_color[color_idx]
             else
                 color=:snow3
@@ -230,8 +205,9 @@ function create_animation(experiment::String, frames::Any;where2save::String="./
         sleep(1/fps) # refreshes the display!
     end
 end
+# create_animation("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs25.nc", where2save=pwd()*"/figures/", 900:1:1000, framerate=15, fps=60, plot_sun=true, plot_albedo=true)
 
-create_animation("data/runs/paper-800kyr/exp06/AGING-SLOW/AGING-SLOW1.nc", where2save=pwd()*"/figures/", 100:1:900, framerate=15, fps=60, plot_sun=true, plot_albedo=true)
+create_animation("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs25.nc", where2save=pwd()*"/figures/", 200:1:1000, framerate=15, fps=60, plot_sun=true, plot_albedo=true)
 
 
 

@@ -2,6 +2,19 @@ using Pkg
 Pkg.activate(".")
 using NCDatasets, JLD2, Interpolations, DSP, LaTeXStrings, CairoMakie
 
+function calc_Ieff(df, par)
+    albedo_eff = df["albedo"][:]
+    albedo_eff[df["m"][:].>0] .= par.albedo_newice
+
+    absortion = 1 .- albedo_eff
+    sw = absortion .* (df["I"] .- params.insol_ref)
+    Ieff = copy(sw)
+    Ieff[df["I"][:].<=par.insol_ref] .= 0.0
+    Ieff[df["H"][:].<=10.0] .= 0.0
+
+    return Ieff
+end
+
 function find_points_in_cycle(time, ice, interval, threshold; offset=1)
     dt = time[2] .- time[1]
     ice = ice[interval]
@@ -130,7 +143,8 @@ function convert_nc_to_jld2(path2data::String, t0, tend, dt)
     JLD2.save_object("data/paleo_records/$(filename)", mat)
 end
 
-function create_PSD(t::Vector, x::Vector)
+function create_PSD(t::Vector, x::Vector, newt1::Real, newt2::Real, newdt::Real)
+    t, x = interp_time_series(t, x, newt1, newt2, newdt)    # cut time series
     x_trend = sum(x) ./ length(x) .+ (x[end] .- x[1]) ./ (t[end] .- t[1]) .* t
     fs = 1 / (t[2] - t[1])
     G, fr = calc_spectrum(x .- x_trend, fs)
