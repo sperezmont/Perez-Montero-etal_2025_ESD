@@ -589,7 +589,7 @@ save("figures/fig15.pdf", fig)
 # Figure 10. AGING (best τα)
 # ===========================================================================================================
 figname = "exp06_AGING_best"
-best_exp = "25"
+best_exp = "20"
 df = NCDataset("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs$(best_exp).nc")
 params = JLD2.load_object("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs$(best_exp)_params.jld2")
 
@@ -750,7 +750,7 @@ save("figures/fig16.pdf", fig)
 # ===========================================================================================================
 var2plot="H"
 figname = "exp06_AGING_PhaseSpace_$(var2plot)"
-best_exp = "25"
+best_exp = "20"
 df = NCDataset("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs$(best_exp).nc")
 params = JLD2.load_object("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs$(best_exp)_params.jld2")
 Ianom = df["I"] .- params.insol_ref
@@ -952,7 +952,7 @@ figname = "exp06_AGING-Cs_PSD"
 runs2plot = range(1, length(Css))
 df1 = NCDataset("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs01.nc")
 params = JLD2.load_object("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs01_params.jld2")
-selected_AGING_run = 25
+selected_AGING_run = 20
 
 colormap = cgrad(cmap, length(runs2plot), categorical=true)
 colors = collect(colormap)
@@ -1107,7 +1107,7 @@ save("figures/figA2.pdf", fig)
 # Figure 11. AGING (best) thresholds
 # ===========================================================================================================
 figname = "exp06_AGING_best_thr"
-best_exp = "25"
+best_exp = "20"
 df = NCDataset("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs$(best_exp).nc")
 params = JLD2.load_object("data/runs//exp06/AGING-MV-Cs/AGING-MV-Cs$(best_exp)_params.jld2")
 

@@ -2,9 +2,9 @@ using Pkg
 Pkg.activate(".")
 
 locpacco = "/home/sergio/entra/models/pacco_vers/pacco_v0.6/"
-locdir = "/home/sergio/entra/proyects/d05_paper-PACCO/Perez-Montero-etal_YYYY_ESD/"
+locdir = "/home/sergio/entra/proyects/d05_Perez-Montero-etal_2025_ESD/"
 
-locexps = "$(locpacco)/output/Perez-Montero-etal_2024_ESD/"
+locexps = "$(locpacco)/output/Perez-Montero-etal_2025_ESD/"
 
 function get_runs(exp_path::String, subdirs::Vector)
     runs = []
